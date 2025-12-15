@@ -24,14 +24,6 @@
  */
 
 // Define W5500 pin assignments
-#define ETH_TYPE ETH_PHY_W5500
-#define W5500_CS 14    // Chip Select pin
-#define W5500_RST 9    // Reset pin
-#define W5500_INT 10   // Interrupt pin
-#define W5500_MISO 12  // MISO pin
-#define W5500_MOSI 11  // MOSI pin
-#define W5500_SCK 13   // Clock pin
-
 #ifndef ETH_PHY_CS
 #define ETH_PHY_TYPE ETH_PHY_W5500
 #define ETH_PHY_ADDR 1
