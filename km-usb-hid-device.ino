@@ -32,6 +32,13 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 EthernetClient client;
 
+// Static IP settings
+bool useDhcp = false;
+IPAddress ip(192, 168, 1, 177);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0);
+IPAddress dns(192, 168, 1, 1);
+
 /*
 * SD Card
 */
@@ -51,6 +58,79 @@ uint32_t cardSize;
 
 USBHIDMouse Mouse;
 USBHIDKeyboard Keyboard;
+
+/*
+ * Config
+ */
+
+void parseIPAddress(const char* str, IPAddress& addr) {
+  uint8_t parts[4] = {0};
+  int part = 0;
+  
+  while (*str && part < 4) {
+    if (*str == '.') {
+      part++;
+    } else if (*str >= '0' && *str <= '9') {
+      parts[part] = parts[part] * 10 + (*str - '0');
+    }
+    str++;
+  }
+  addr = IPAddress(parts[0], parts[1], parts[2], parts[3]);
+}
+
+bool loadConfig() {
+    Serial.println("Loading config...");
+
+    File file = SD.open("/config.txt");
+    if (!file) {
+        Serial.println("Failed to open config.txt");
+        return false;
+    }
+
+    char line[32];
+    while (file.available()) {
+        int i = 0;
+        while (file.available() && i < sizeof(line) - 1) {
+            char c  = file.read();
+            if (c == '\n' || c == '\r') {
+                break;
+            }
+            line[i++] = c;
+        }
+        line[i] = '\0';
+
+        if (i == 0) {
+            continue;
+        }
+
+        char* eq = strchr(line, '=');
+        if (!eq) {
+            continue;
+        }
+
+        *eq = '\0';
+
+        char* key = line;
+        char* value = eq + 1;
+
+        if (strcmp(key, "dhcp") == 0) {
+            useDhcp = (strcmp(value, "true") == 0);
+        } else if (strcmp(key, "ip") == 0) {
+            parseIPAddress(value, ip);
+        } else if (strcmp(key, "gw") == 0) {
+            parseIPAddress(value, gateway);
+        } else if (strcmp(key, "sn") == 0) {
+            parseIPAddress(value, subnet);
+        } else if (strcmp(key, "dns") == 0) {
+            parseIPAddress(value, dns);
+        }
+    }
+
+    file.close();
+
+    Serial.println("Successfully loaded config");
+    return true;
+}
 
 void setup()
 {
@@ -73,12 +153,16 @@ void setup()
         Serial.println("SDCard MOUNT SUCCESS");
     } else {
         Serial.println("SDCard MOUNT FAIL");
-        delay(500);
-        return;
     }
 
     cardSize = SD.cardSize() / (1024 * 1024);
     Serial.printf("SDCard Size: %d MB\n", cardSize);
+
+    if (cardSize == 0) {
+        Serial.println("No SD card detected, skip config load...");
+    } else {
+        loadConfig();
+    }
 
     /*
      * Ethernet Setup
@@ -96,22 +180,21 @@ void setup()
 
     // Initialize Ethernet using DHCP to obtain an IP address
     Ethernet.init(W5500_CS);
-    if (Ethernet.begin(mac) == 0) {
-        Serial.println("DHCP failed, falling back to static IP...");
-
-        // Static IP fallback settings
-        IPAddress ip(192, 168, 1, 177);
-        IPAddress gateway(192, 168, 1, 1);
-        IPAddress subnet(255, 255, 255, 0);
-        IPAddress dns(192, 168, 1, 1);
-
+    if (!useDhcp || Ethernet.begin(mac) == 0) {
+        Serial.println("Using static IP...");
         // Initialize with static IP
         Ethernet.begin(mac, ip, dns, gateway, subnet);
     }
 
     // Print the assigned IP address
-    Serial.print("IP Address: ");
+    Serial.print("IP: ");
     Serial.println(Ethernet.localIP());
+    Serial.print("Gateway: ");
+    Serial.println(Ethernet.gatewayIP());
+    Serial.print("Subnet: ");
+    Serial.println(Ethernet.subnetMask());
+    Serial.print("DNS: ");
+    Serial.println(Ethernet.dnsServerIP());
 
     /*
     *  USB Setup
