@@ -24,7 +24,8 @@
                  x:Name="IpAddressTextBox"
                  FontSize="14" 
                  Padding="5"
-                 Text="192.168.1.177"/>
+                 Text="192.168.1.177"
+                 TabIndex="0"/>
 
         <TextBlock Grid.Row="2" 
                    x:Name="StatusTextBlock"

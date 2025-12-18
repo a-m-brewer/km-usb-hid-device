@@ -11,6 +11,25 @@ namespace RemoteHIDController
         public ConnectWindow()
         {
             InitializeComponent();
+            LoadLastIpAddress();
+        }
+
+        private void LoadLastIpAddress()
+        {
+            var settings = AppSettings.Load();
+            if (!string.IsNullOrEmpty(settings.LastIpAddress))
+            {
+                IpAddressTextBox.Text = settings.LastIpAddress;
+            }
+        }
+
+        private void SaveLastIpAddress(string ipAddress)
+        {
+            var settings = new AppSettings 
+            { 
+                LastIpAddress = ipAddress 
+            };
+            settings.Save();
         }
 
         private async void ConnectButton_Click(object sender, RoutedEventArgs e)
@@ -38,6 +57,7 @@ namespace RemoteHIDController
                     await client.DisconnectAsync();
                     client.Dispose();
 
+                    SaveLastIpAddress(ipAddress);
                     IpAddress = ipAddress;
                     Connected = true;
                     DialogResult = true;
