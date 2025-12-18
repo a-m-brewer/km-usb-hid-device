@@ -51,9 +51,7 @@
                 MouseDown="CaptureArea_MouseDown"
                 MouseUp="CaptureArea_MouseUp"
                 MouseMove="CaptureArea_MouseMove"
-                MouseWheel="CaptureArea_MouseWheel"
-                KeyDown="CaptureArea_KeyDown"
-                KeyUp="CaptureArea_KeyUp">
+                MouseWheel="CaptureArea_MouseWheel">
             <Viewbox>
                 <TextBlock x:Name="CaptureTextBlock"
                            Foreground="#95A5A6"

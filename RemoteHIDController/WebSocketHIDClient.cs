@@ -81,7 +81,7 @@ namespace RemoteHIDController
             if (!IsConnected) return;
 
             // Ensure we always send an array, pad with zeros if needed
-            var keyArray = new byte[6];
+            var keyArray = new int[6];
             for (int i = 0; i < Math.Min(keycodes.Length, 6); i++)
             {
                 keyArray[i] = keycodes[i];
@@ -90,7 +90,7 @@ namespace RemoteHIDController
             var message = new
             {
                 t = "k",
-                m = modifiers,
+                m = (int)modifiers,
                 k = keyArray
             };
 

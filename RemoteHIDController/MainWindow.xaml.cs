@@ -177,47 +177,6 @@ namespace RemoteHIDController
             }
         }
 
-        private async void CaptureArea_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (!_isCapturing) return;
-
-            // Always handle to prevent system processing
-            e.Handled = true;
-
-            if (e.Key == Key.Escape)
-            {
-                StopCapture();
-                return;
-            }
-
-            // Prevent repeat key events
-            if (e.IsRepeat) return;
-
-            var key = e.Key == Key.System ? e.SystemKey : e.Key;
-
-            if (!_pressedKeys.Contains(key))
-            {
-                _pressedKeys.Add(key);
-                await SendKeyboardState();
-            }
-        }
-
-        private async void CaptureArea_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (!_isCapturing) return;
-
-            // Always handle to prevent system processing
-            e.Handled = true;
-
-            var key = e.Key == Key.System ? e.SystemKey : e.Key;
-
-            if (_pressedKeys.Contains(key))
-            {
-                _pressedKeys.Remove(key);
-                await SendKeyboardState();
-            }
-        }
-
         private async System.Threading.Tasks.Task SendKeyboardState()
         {
             if (_hidClient == null) return;
@@ -238,6 +197,10 @@ namespace RemoteHIDController
                 .Where(code => code != 0)
                 .Take(6)
                 .ToArray();
+
+            // Debug output
+            System.Diagnostics.Debug.WriteLine($"Pressed keys: {string.Join(", ", _pressedKeys)}");
+            System.Diagnostics.Debug.WriteLine($"Sending: mod={modifiers:X2} keys=[{string.Join(",", keycodes)}]");
 
             await _hidClient.SendKeyboardAsync(modifiers, keycodes);
         }
