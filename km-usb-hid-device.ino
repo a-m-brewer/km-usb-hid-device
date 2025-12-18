@@ -326,8 +326,27 @@ void setup() {
       int8_t wheel = doc["w"] | 0;
 
       Serial.printf("Mouse: x=%d y=%d btn=%d wheel=%d\n", x, y, buttons, wheel);
-    
+      
+      // Handle mouse buttons
+      if (buttons & 0x01) {
+        if (!Mouse.isPressed(MOUSE_LEFT)) Mouse.press(MOUSE_LEFT);
+      } else {
+        if (Mouse.isPressed(MOUSE_LEFT)) Mouse.release(MOUSE_LEFT);
+      }
+      
+      if (buttons & 0x02) {
+        if (!Mouse.isPressed(MOUSE_RIGHT)) Mouse.press(MOUSE_RIGHT);
+      } else {
+        if (Mouse.isPressed(MOUSE_RIGHT)) Mouse.release(MOUSE_RIGHT);
+      }
+      
+      if (buttons & 0x04) {
+        if (!Mouse.isPressed(MOUSE_MIDDLE)) Mouse.press(MOUSE_MIDDLE);
+      } else {
+        if (Mouse.isPressed(MOUSE_MIDDLE)) Mouse.release(MOUSE_MIDDLE);
+      }
 
+      // Move mouse
       Mouse.move(x, y, wheel);
     } else if (strcmp(type, "k") == 0) {
       uint8_t modifiers = doc["m"] | 0;
@@ -343,7 +362,15 @@ void setup() {
       Serial.printf("Keyboard: mod=%02X keys=[%d,%d,%d,%d,%d,%d]\n",
                     modifiers, keycodes[0], keycodes[1], keycodes[2],
                     keycodes[3], keycodes[4], keycodes[5]);
-      // USB HID keyboard report here
+      
+      // Send keyboard report using KeyReport struct
+      KeyReport report = {0};
+      report.modifiers = modifiers;
+      report.reserved = 0;
+      for (int j = 0; j < 6; j++) {
+        report.keys[j] = keycodes[j];
+      }
+      Keyboard.sendReport(&report);
     }
     else {
       Serial.printf("Unknown event: %s\n", type);

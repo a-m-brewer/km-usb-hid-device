@@ -13,6 +13,7 @@ namespace RemoteHIDController
         private System.Windows.Point _lastMousePosition;
         private byte _currentMouseButtons = 0;
         private readonly HashSet<Key> _pressedKeys = new();
+        private bool _ignoringMouseMove = false;
 
         public MainWindow()
         {
@@ -88,7 +89,7 @@ namespace RemoteHIDController
             }
         }
 
-        private void CaptureArea_MouseDown(object sender, MouseButtonEventArgs e)
+        private async void CaptureArea_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (!_isCapturing)
             {
@@ -101,6 +102,12 @@ namespace RemoteHIDController
             }
 
             UpdateMouseButtons(e);
+            
+            // Send button state immediately
+            if (_hidClient != null)
+            {
+                await _hidClient.SendMouseAsync(0, 0, _currentMouseButtons, 0);
+            }
         }
 
         private async void CaptureArea_MouseUp(object sender, MouseButtonEventArgs e)
@@ -117,7 +124,7 @@ namespace RemoteHIDController
 
         private async void CaptureArea_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!_isCapturing) return;
+            if (!_isCapturing || _ignoringMouseMove) return;
 
             var currentPosition = e.GetPosition(CaptureArea);
             var deltaX = (int)(currentPosition.X - _lastMousePosition.X);
@@ -137,6 +144,8 @@ namespace RemoteHIDController
 
         private void CenterMouseInWindow()
         {
+            _ignoringMouseMove = true;
+            
             var centerPoint = CaptureArea.PointToScreen(new System.Windows.Point(
                 CaptureArea.ActualWidth / 2,
                 CaptureArea.ActualHeight / 2));
@@ -147,6 +156,10 @@ namespace RemoteHIDController
             _lastMousePosition = new System.Windows.Point(
                 CaptureArea.ActualWidth / 2,
                 CaptureArea.ActualHeight / 2);
+
+            // Use Dispatcher to reset flag after cursor has been repositioned
+            Dispatcher.InvokeAsync(() => { _ignoringMouseMove = false; }, 
+                System.Windows.Threading.DispatcherPriority.Input);
         }
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
