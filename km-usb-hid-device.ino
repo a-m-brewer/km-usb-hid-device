@@ -19,6 +19,9 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+// JSON
+#include <ArduinoJson.h>
+
 /*
  * Ethernet
  */
@@ -264,8 +267,7 @@ void setup() {
   // Initialize Ethernet using DHCP to obtain an IP address
   if (useDhcp) {
     Serial.println("Using DHCP...");
-  }
-  else {
+  } else {
     Serial.println("Using static IP...");
     // Initialize with static IP
     ETH.config(ip, gateway, subnet, dns);
@@ -293,12 +295,10 @@ void setup() {
 
   wsHandler.onConnect([](AsyncWebSocket *server, AsyncWebSocketClient *client) {
     Serial.printf("Client %" PRIu32 " connected\n", client->id());
-    server->textAll("New client: " + String(client->id()));
   });
 
   wsHandler.onDisconnect([](AsyncWebSocket *server, uint32_t clientId) {
     Serial.printf("Client %" PRIu32 " disconnected\n", clientId);
-    server->textAll("Client " + String(clientId) + " disconnected");
   });
 
   wsHandler.onError([](AsyncWebSocket *server, AsyncWebSocketClient *client, uint16_t errorCode, const char *reason, size_t len) {
@@ -307,7 +307,47 @@ void setup() {
 
   wsHandler.onMessage([](AsyncWebSocket *server, AsyncWebSocketClient *client, const uint8_t *data, size_t len) {
     Serial.printf("Client %" PRIu32 " data: %s\n", client->id(), (const char *)data);
-    server->textAll(data, len);
+
+    JsonDocument doc;
+    if (deserializeJson(doc, data, len)) {
+      Serial.println("Invalid JSON");
+      return;
+    }
+
+    const char *type = doc["t"];
+    if (!type) {
+      Serial.println("t not found");
+    }
+
+    if (strcmp(type, "m") == 0) {
+      int8_t x = doc["x"] | 0;
+      int8_t y = doc["y"] | 0;
+      uint8_t buttons = doc["b"] | 0;
+      int8_t wheel = doc["w"] | 0;
+
+      Serial.printf("Mouse: x=%d y=%d btn=%d wheel=%d\n", x, y, buttons, wheel);
+      // USB HID mouse report here
+    } else if (strcmp(type, "k") == 0) {
+      uint8_t modifiers = doc["m"] | 0;
+      JsonArray keys = doc["k"];
+
+      uint8_t keycodes[6] = { 0 };
+      size_t i = 0;
+      for (JsonVariant v : keys) {
+        if (i >= 6) break;
+        keycodes[i++] = v.as<uint8_t>();
+      }
+
+      Serial.printf("Keyboard: mod=%02X keys=[%d,%d,%d,%d,%d,%d]\n",
+                    modifiers, keycodes[0], keycodes[1], keycodes[2],
+                    keycodes[3], keycodes[4], keycodes[5]);
+      // USB HID keyboard report here
+    }
+    else {
+      Serial.printf("Unknown event: %s\n", type);
+    }
+
+    // server->textAll(data, len);
   });
 
   wsHandler.onFragment([](AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsFrameInfo *frameInfo, const uint8_t *data, size_t len) {
