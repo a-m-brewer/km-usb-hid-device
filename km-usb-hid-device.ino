@@ -326,7 +326,9 @@ void setup() {
       int8_t wheel = doc["w"] | 0;
 
       Serial.printf("Mouse: x=%d y=%d btn=%d wheel=%d\n", x, y, buttons, wheel);
-      // USB HID mouse report here
+    
+
+      Mouse.move(x, y, wheel);
     } else if (strcmp(type, "k") == 0) {
       uint8_t modifiers = doc["m"] | 0;
       JsonArray keys = doc["k"];
