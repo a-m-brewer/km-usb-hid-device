@@ -47,7 +47,7 @@ namespace RemoteHIDController
             // Numpad
             { Key.NumLock, 0x53 },
             { Key.Divide, 0x54 }, { Key.Multiply, 0x55 }, { Key.Subtract, 0x56 },
-            { Key.Add, 0x57 }, { Key.Enter, 0x58 },
+            { Key.Add, 0x57 },
             { Key.NumPad1, 0x59 }, { Key.NumPad2, 0x5A }, { Key.NumPad3, 0x5B },
             { Key.NumPad4, 0x5C }, { Key.NumPad5, 0x5D }, { Key.NumPad6, 0x5E },
             { Key.NumPad7, 0x5F }, { Key.NumPad8, 0x60 }, { Key.NumPad9, 0x61 },

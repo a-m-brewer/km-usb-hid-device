@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -10,7 +11,7 @@ namespace RemoteHIDController
     {
         private WebSocketHIDClient? _hidClient;
         private bool _isCapturing = false;
-        private System.Windows.Point _lastMousePosition;
+        private Point _lastMousePosition;
         private byte _currentMouseButtons = 0;
         private readonly HashSet<Key> _pressedKeys = new();
         private bool _ignoringMouseMove = false;
@@ -68,7 +69,8 @@ namespace RemoteHIDController
                 if (!e.IsRepeat && !_pressedKeys.Contains(key))
                 {
                     _pressedKeys.Add(key);
-                    _ = SendKeyboardState();
+                    System.Diagnostics.Debug.WriteLine($"Key added: {key}");
+                    SendKeyboardStateSync();
                 }
             }
         }
@@ -84,7 +86,8 @@ namespace RemoteHIDController
                 if (_pressedKeys.Contains(key))
                 {
                     _pressedKeys.Remove(key);
-                    _ = SendKeyboardState();
+                    System.Diagnostics.Debug.WriteLine($"Key removed: {key}");
+                    SendKeyboardStateSync();
                 }
             }
         }
@@ -146,14 +149,14 @@ namespace RemoteHIDController
         {
             _ignoringMouseMove = true;
             
-            var centerPoint = CaptureArea.PointToScreen(new System.Windows.Point(
+            var centerPoint = CaptureArea.PointToScreen(new Point(
                 CaptureArea.ActualWidth / 2,
                 CaptureArea.ActualHeight / 2));
             
             SetCursorPos((int)centerPoint.X, (int)centerPoint.Y);
             
             // Update last position to center
-            _lastMousePosition = new System.Windows.Point(
+            _lastMousePosition = new Point(
                 CaptureArea.ActualWidth / 2,
                 CaptureArea.ActualHeight / 2);
 
@@ -177,7 +180,7 @@ namespace RemoteHIDController
             }
         }
 
-        private async System.Threading.Tasks.Task SendKeyboardState()
+        private void SendKeyboardStateSync()
         {
             if (_hidClient == null) return;
 
@@ -202,7 +205,8 @@ namespace RemoteHIDController
             System.Diagnostics.Debug.WriteLine($"Pressed keys: {string.Join(", ", _pressedKeys)}");
             System.Diagnostics.Debug.WriteLine($"Sending: mod={modifiers:X2} keys=[{string.Join(",", keycodes)}]");
 
-            await _hidClient.SendKeyboardAsync(modifiers, keycodes);
+            // Send asynchronously but don't await (fire and forget)
+            _ = _hidClient.SendKeyboardAsync(modifiers, keycodes);
         }
 
         private void UpdateMouseButtons(MouseButtonEventArgs e)
@@ -228,6 +232,7 @@ namespace RemoteHIDController
 
             // Release all keys
             _pressedKeys.Clear();
+            Debug.WriteLine("All keys released");
             _currentMouseButtons = 0;
 
             if (_hidClient != null)
